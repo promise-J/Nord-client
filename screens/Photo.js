@@ -19,7 +19,8 @@ const Photo = () => {
   const [image, setImage] = useState(null);
   const [hasCameraPermission, setHasCameraPermission] = useState(null);
   const [hasGalleryPermission, setHasGalleryPermission] = useState(null);
-
+  const [useCamera, setUseCamera] = useState(false);
+  const [useGallery, setUseGallery] = useState(false);
   const askPermission = async (permission) => {
     try {
       const granted = await PermissionsAndroid.request(
@@ -46,8 +47,11 @@ const Photo = () => {
 
   const handleUpload = async () => {
     try {
-      const gallery = await askPermission("READ_EXTERNAL_STORAGE");
-      setHasGalleryPermission(gallery);
+      if (!useGallery) {
+        const gallery = await askPermission("READ_EXTERNAL_STORAGE");
+        setHasGalleryPermission(gallery);
+      }
+      setUseGallery(true);
       const response = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -56,11 +60,11 @@ const Photo = () => {
 
       if (!response.canceled) {
         setImage(response.assets[0].uri);
-        const filename = response.assets[0].uri.split('/').pop();
+        const filename = response.assets[0].uri.split("/").pop();
         const ref = storage().ref().child(filename);
         const task = ref.putFile(response.assets[0].uri);
         task.on(
-          'state_changed',
+          "state_changed",
           (snapshot) => {
             // console.log(snapshot);
           },
@@ -70,22 +74,23 @@ const Photo = () => {
           async () => {
             const url = await ref.getDownloadURL();
             setImage(url);
-            db.collection('images').add({
+            db.collection("images").add({
               url: url,
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             });
           }
         );
-
       }
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   const handleTakePicture = async () => {
     try {
-      const camera = await askPermission("CAMERA");
-      setHasCameraPermission(camera);
+      if (!useCamera) {
+        const camera = await askPermission("CAMERA");
+        setHasCameraPermission(camera);
+      }
+      setUseCamera(true);
       const response = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [4, 3],
@@ -93,11 +98,11 @@ const Photo = () => {
 
       if (!response.canceled) {
         setImage(response.assets[0].uri);
-        const filename = response.assets[0].uri.split('/').pop();
+        const filename = response.assets[0].uri.split("/").pop();
         const ref = storage().ref().child(filename);
         const task = ref.putFile(response.assets[0].uri);
         task.on(
-          'state_changed',
+          "state_changed",
           (snapshot) => {
             // console.log(snapshot);
           },
@@ -107,16 +112,14 @@ const Photo = () => {
           async () => {
             const url = await ref.getDownloadURL();
             setImage(url);
-            db.collection('images').add({
+            db.collection("images").add({
               url: url,
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             });
           }
         );
-
       }
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   useEffect(() => {
@@ -127,7 +130,6 @@ const Photo = () => {
       // setHasGalleryPermission(gallery);
     })();
   }, []);
-
 
   const logout = async () => {
     try {
